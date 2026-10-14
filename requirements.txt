@@ -1,0 +1,10 @@
+Flask>=3.0
+pypdf>=5.0
+Pillow>=10.0
+requests>=2.31
+python-dotenv>=1.0
+# Used by later stages (PPTX ingestion) and for regenerating the sample PDF:
+python-pptx>=1.0
+reportlab>=4.0
+# Dev / tests
+pytest>=8.0

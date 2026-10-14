@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>{{ doc.filename }}</title>
+<style>
+:root{color-scheme:dark}
+body{margin:0;background:#0f1118;color:#ece8df;font:14px/1.55 ui-sans-serif,system-ui,sans-serif;padding:16px}
+h1{font:600 13px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b91a1;margin:0 0 4px}
+.note{font-size:12px;color:#8b91a1;margin:0 0 14px}
+.slide,.cue{border:1px solid #1f2330;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#12141c}
+.hl{border-color:#f4b740;box-shadow:0 0 0 3px #f4b74026}
+.slide h2{margin:0 0 6px;font:600 16px Georgia,serif}
+.slide .n,.cue .t{font:700 11px ui-monospace,monospace;color:#f4b740;margin-right:8px}
+.slide li{margin:2px 0}.notes{margin-top:8px;color:#8b91a1;font-size:13px}
+img{max-width:100%;border-radius:6px;background:#fff;margin-top:8px}
+</style></head><body>
+<h1>{{ doc.filename }}</h1>
+{% if kind == 'pptx' %}
+<p class="note">Text view: slide text, speaker notes and pictures. Slide visuals/layout are not rendered.</p>
+{% for s in slides %}
+<div class="slide{% if s.slide == target %} hl{% endif %}" {% if s.slide == target %}id="hl"{% endif %}>
+  <h2><span class="n">slide {{ s.slide }}</span>{{ s.title or '(untitled)' }}</h2>
+  <ul>{% for p in s.paragraphs %}<li>{{ p }}</li>{% endfor %}</ul>
+  {% if s.notes %}<div class="notes">Notes: {{ s.notes }}</div>{% endif %}
+  {% for f in figs.get(s.slide, []) %}<img src="/figures/{{ f.id }}" alt="{{ f.alt or 'Picture on this slide (no alt text in the file)' }}">{% if f.alt %}<div class="notes">Alt text: {{ f.alt }}</div>{% endif %}{% endfor %}
+</div>
+{% endfor %}
+{% else %}
+<p class="note">Transcript with timestamps. The cited time range is highlighted.</p>
+{% for c in cues %}
+<div class="cue{% if c.hl %} hl{% endif %}" {% if c.hl and (cues|selectattr('hl')|first).i == c.i %}id="hl"{% endif %}><span class="t">{{ c.label }}</span>{{ c.text }}</div>
+{% endfor %}
+{% endif %}
+<script>var h=document.getElementById('hl');if(h)h.scrollIntoView({block:'center'});</script>
+</body></html>

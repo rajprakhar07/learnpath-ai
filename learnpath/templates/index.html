@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LearnPath — study from your own material</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <div><h1>LearnPath</h1><p>answers that show their work</p></div>
+    </div>
+
+    <section class="block">
+      <h2>Course material</h2>
+      <label class="drop" id="drop" tabindex="0">
+        <input type="file" id="file" accept=".pdf,.pptx,.vtt,.srt,.txt" hidden>
+        <strong>Drop a PDF</strong>
+        <span>PDF · PPTX · transcript (.vtt .srt .txt)</span>
+      </label>
+      <button class="ghost" id="load-sample" type="button">Load the sample course (PDF)</button>
+      <button class="ghost" id="load-all" type="button">Load all sample formats</button>
+      <div id="upload-msg" class="msg" role="status" aria-live="polite"></div>
+      <ul id="docs" class="docs"></ul>
+    </section>
+
+    <section class="block foot">
+      <div id="mode" class="mode"></div>
+    </section>
+  </aside>
+
+  <main class="chat">
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab active" data-tab="tutor" aria-selected="true">Tutor</button>
+      <button role="tab" class="tab" data-tab="practice" aria-selected="false">Practice</button>
+      <button role="tab" class="tab" data-tab="mastery" aria-selected="false">Mastery</button>
+      <button role="tab" class="tab" data-tab="review" aria-selected="false">Review</button>
+    </nav>
+    <section id="pane-practice" class="pane" hidden>
+      <div id="practice-body" class="practice"></div>
+    </section>
+    <section id="pane-review" class="pane" hidden>
+      <div id="review-body" class="practice"></div>
+    </section>
+    <section id="pane-mastery" class="pane" hidden>
+      <div id="mastery-body" class="mastery"></div>
+    </section>
+    <div id="pane-tutor" class="pane tutor">
+    <div id="feed" class="feed" aria-live="polite">
+      <div class="empty" id="empty">
+        <h2>Ask your material.</h2>
+        <p>Every answer is tied to a page you can open. If your notes don't cover it, LearnPath says so instead of guessing.</p>
+        <div id="starters" class="starters"></div>
+      </div>
+    </div>
+    <form id="ask-form" class="composer">
+      <input id="q" type="text" maxlength="1000" autocomplete="off" placeholder="Ask a question about your course material…" aria-label="Question">
+      <button type="submit" id="send">Ask</button>
+    </form>
+    </div>
+  </main>
+
+  <aside class="evidence">
+    <div class="ev-head"><h2>Evidence</h2><span id="ev-sub" class="muted">Citations appear here</span></div>
+    <div id="cards" class="cards"></div>
+    <div class="viewer">
+      <div class="viewer-bar"><span id="viewer-title" class="muted">Source viewer</span>
+        <a id="viewer-open" href="#" target="_blank" rel="noopener" hidden>Open in new tab ↗</a></div>
+      <iframe id="viewer" title="Source PDF viewer"></iframe>
+      <div id="viewer-empty" class="viewer-empty">Select a citation to open the exact page.</div>
+    </div>
+  </aside>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

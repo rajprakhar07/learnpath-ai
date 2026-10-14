@@ -1,0 +1,312 @@
+"""Source-grounded tutoring.
+
+Pipeline:  retrieve (BM25)  ->  answerability gate  ->  answer (LLM or extractive)  ->  citation validation.
+
+Guarantees (enforced in code, covered by tests):
+  * Every citation returned points at a chunk that was actually retrieved from an uploaded document.
+  * Excerpts are copied from stored chunk text, never from model output.
+  * Citation markers the model invents (e.g. [S9] when only 4 sources exist) are removed.
+  * An LLM answer with no valid citation is not shown as an answer.
+  * Questions whose key terms are not in the material are refused *before* any LLM call.
+"""
+import re
+import time
+
+from .llm import LLMError, parse_json_object
+from .locfmt import loc_label
+from .textutil import is_full_sentence, split_sentences, terms
+
+_MARKER = re.compile(r"\[\s*S(\d+(?:\s*,\s*S?\d+)*)\s*\]", re.I)
+
+
+def _loc_label(c):
+    return loc_label(c["loc_kind"], c["loc_start"], c.get("loc_end"))
+
+
+def _citation(n, chunk, score):
+    return {
+        "n": n,
+        "chunk_id": chunk["id"],
+        "doc_id": chunk["doc_id"],
+        "doc_name": chunk["filename"],
+        "loc_kind": chunk["loc_kind"],
+        "loc_start": chunk["loc_start"],
+        "loc_end": chunk["loc_end"],
+        "label": _loc_label(chunk),
+        "excerpt": chunk["text"],
+        "score": round(score, 3),
+    }
+
+
+# Patterns that signal the student is asking for a DEFINITION or EXPANSION of an abbreviation.
+# Used by the definition-trap guard.
+_DEF_QUESTION = re.compile(
+    r"\b(stand\s+for|stands\s+for|abbreviation|acronym|short\s+for|full\s+form|mean[st]?|definition\s+of)\b",
+    re.I,
+)
+# A token that looks like a short abbreviation (all-caps, 2-7 chars, e.g. ReLU, SQL, ACID)
+_ABBREV = re.compile(r"\b[A-Z][A-Z0-9]{1,6}\b")
+# Phrases that signal a source passage actually DEFINES or EXPANDS the term.
+_DEF_EVIDENCE = re.compile(
+    r"(stand[s]?\s+for|is\s+(an?\s+)?(acronym|abbreviation)|means?\b|defined\s+as|=)",
+    re.I,
+)
+
+
+def _stem_prefix_coverage(q_terms, hit_chunks, index, prefix_len=4):
+    """Fuzzy coverage: a query term is considered 'present' if any corpus term in the
+    hit chunks shares its first `prefix_len` characters (catches morphological variants
+    like 'scheduler'/'Scheduling', 'memoriz'/'memoris')."""
+    if not q_terms:
+        return 0.0
+    total = sum(index.idf(t) for t in q_terms)
+    if not total:
+        return 0.0
+    corpus_prefixes = set()
+    for c in hit_chunks:
+        by_id = {ch["id"]: i for i, ch in enumerate(index.chunks)}
+        idx = by_id.get(c["id"])
+        if idx is not None:
+            for t in index.termsets[idx]:
+                if len(t) >= prefix_len:
+                    corpus_prefixes.add(t[:prefix_len])
+                else:
+                    corpus_prefixes.add(t)
+    got = 0.0
+    for t in q_terms:
+        p = t[:prefix_len] if len(t) >= prefix_len else t
+        if t in index.union_terms(hit_chunks) or p in corpus_prefixes:
+            got += index.idf(t)
+    return got / total
+
+
+def _is_definition_trap(question, hits):
+    """Return True when the question asks for the DEFINITION/EXPANSION of an abbreviation
+    but none of the top-3 hit passages actually define it.
+
+    Trap example: 'What does ReLU stand for?' — ReLU appears in the corpus as an example
+    activation function but is never defined or expanded.
+    """
+    if not _DEF_QUESTION.search(question):
+        return False
+    abbrevs = _ABBREV.findall(question)
+    if not abbrevs:
+        return False
+    for chunk, _ in hits[:3]:
+        text = chunk["text"]
+        for abbrev in abbrevs:
+            if abbrev in text and _DEF_EVIDENCE.search(text):
+                return False
+    return True
+
+
+def assess_support(index, q_terms, hits, cfg):
+    """Decide whether retrieved material can plausibly answer the question."""
+    if index.N == 0:
+        return False, 0.0, "No course material has been uploaded yet."
+    if not q_terms:
+        return False, 0.0, "The question has no content words to search for."
+    if not hits:
+        return False, 0.0, "None of the question's key terms appear in your material."
+    top_score = hits[0][1]
+    coverage = index.weighted_coverage(q_terms, [c for c, _ in hits[:3]])
+    # For short queries (1-2 content terms), exact MIN_COVERAGE is unreachable if the
+    # one key term is absent from the corpus; use a per-query floor of 1/n_terms.
+    effective_min_cov = min(cfg["MIN_COVERAGE"], 1.0 / len(q_terms))
+    # Try stem-prefix fuzzy coverage to catch morphological paraphrases.
+    if coverage < effective_min_cov:
+        fuzzy = _stem_prefix_coverage(q_terms, [c for c, _ in hits[:3]], index)
+        if fuzzy > coverage:
+            coverage = fuzzy  # use the better estimate
+    if top_score < cfg["MIN_BM25_SCORE"]:
+        return False, coverage, "The best matching passage is only a weak match."
+    if coverage < effective_min_cov:
+        present = index.union_terms([c for c, _ in hits[:3]])
+        missing = [t for t in q_terms if t not in present]
+        return False, coverage, (
+            "Key parts of the question don't appear in your material"
+            + (f" (not found: {', '.join(missing[:4])})." if missing else ".")
+        )
+    return True, coverage, "ok"
+
+
+def extractive_answer(index, q_terms, hits, max_sentences=3, min_share=0.5):
+    """Offline mode: pick verbatim sentences from the top passages, each cited.
+
+    A sentence is a candidate only if it is a full prose sentence (not a heading) and contains at least
+    `min_share` of the question's idf mass. Selection is greedy: the first pick is the best sentence;
+    later picks first add uncovered question terms, then fill by relevance.
+    """
+    q_mass = sum(index.idf(t) for t in q_terms) or 1.0
+    cands, seen = [], set()
+    for rank, (chunk, _score) in enumerate(hits[:3], start=1):
+        for pos, sent in enumerate(split_sentences(chunk["text"])):
+            key = sent.lower()
+            if key in seen or not is_full_sentence(sent):
+                continue
+            seen.add(key)
+            st = set(terms(sent))
+            covered = {t for t in q_terms if t in st}
+            w = sum(index.idf(t) for t in covered)
+            if w / q_mass >= min_share:
+                cands.append({"w": w, "rank": rank, "pos": pos, "sent": sent, "chunk": chunk, "covered": covered})
+    if not cands:
+        return None, []
+    cands.sort(key=lambda c: (-c["w"], c["rank"], c["pos"]))
+    picked, covered_all = [cands[0]], set(cands[0]["covered"])
+    rest = cands[1:]
+    while rest and len(picked) < max_sentences:
+        gain = lambda c: sum(index.idf(t) for t in c["covered"] - covered_all)
+        best = max(rest, key=lambda c: (gain(c), c["w"], -c["rank"], -c["pos"]))
+        if gain(best) <= 0:
+            # No new terms left: fill with the next-best sentences (all already pass the relevance threshold),
+            # so comparison questions get each concept's definition, not just one overlap sentence.
+            best = max(rest, key=lambda c: (c["w"], -c["rank"], -c["pos"]))
+        picked.append(best)
+        covered_all |= best["covered"]
+        rest.remove(best)
+    picked.sort(key=lambda c: (c["rank"], c["pos"]))
+    used = {}
+    lines = []
+    for c in picked:
+        lines.append(f"{c['sent']} [S{c['rank']}]")
+        used[c["rank"]] = c["chunk"]
+    return "\n".join(lines), sorted(used)
+
+
+SYSTEM_PROMPT = (
+    "You are a careful course tutor. Answer the student's question using ONLY the numbered sources provided. "
+    "Rules: (1) Do not use outside knowledge. (2) After every claim add the supporting source marker like [S1]; "
+    "use only the numbers that exist. (3) If the sources do not contain enough information to answer, set "
+    '"answerable" to false and leave "answer" empty. (4) Be concise (at most 5 sentences) and explain clearly. '
+    'Respond with ONLY a JSON object: {"answerable": true|false, "answer": "..."}.'
+)
+
+
+def _build_prompt(question, hits):
+    blocks = []
+    for n, (c, _s) in enumerate(hits, start=1):
+        blocks.append(f"[S{n}] ({c['filename']}, {_loc_label(c)}): {c['text']}")
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": "SOURCES:\n" + "\n\n".join(blocks) + f"\n\nQUESTION: {question}"},
+    ]
+
+
+def normalize_markers(answer: str, n_sources: int):
+    """Expand [S1, S2] -> [S1][S2]; drop markers that don't exist. Returns (text, valid_numbers, removed)."""
+    removed, valid = [], []
+
+    def repl(m):
+        nums = [int(x) for x in re.findall(r"\d+", m.group(1))]
+        out = []
+        for n in nums:
+            if 1 <= n <= n_sources:
+                out.append(f"[S{n}]")
+                valid.append(n)
+            else:
+                removed.append(n)
+        return "".join(out)
+
+    text = _MARKER.sub(repl, answer)
+    text = re.sub(r"[ \t]+([.,;:])", r"\1", re.sub(r"[ \t]{2,}", " ", text)).strip()
+    return text, sorted(set(valid)), sorted(set(removed))
+
+
+def grounding_overlap(answer_text: str, cited_chunks) -> float:
+    """Heuristic: share of the answer's content terms that occur in the cited chunks (0..1).
+    Paraphrase lowers it, so it is shown as a hint, never used to fabricate or hide evidence."""
+    a_terms = set(terms(_MARKER.sub(" ", answer_text)))
+    if not a_terms:
+        return 0.0
+    src = set()
+    for c in cited_chunks:
+        src |= set(terms(c["text"]))
+    return len(a_terms & src) / len(a_terms)
+
+
+def _unsupported(question, hits, reason, cfg, mode, started, coverage=0.0, extra=None):
+    # "Nearest" passages are shown only as context for the student; they are NOT citations of an answer.
+    res = {
+        "status": "unsupported",
+        "mode": mode,
+        "question": question,
+        "answer": "",
+        "citations": [],
+        "reason": reason,
+        "support": {"coverage": round(coverage, 3), "top_score": round(hits[0][1], 3) if hits else 0.0},
+        "nearest": [_citation(i, c, s) for i, (c, s) in enumerate(hits[:2], start=1)],
+        "elapsed_ms": int((time.time() - started) * 1000),
+    }
+    if extra:
+        res.update(extra)
+    return res
+
+
+def answer_question(question, index, llm, cfg, doc_ids=None):
+    started = time.time()
+    question = (question or "").strip()
+    q_terms = list(dict.fromkeys(terms(question)))
+    hits = index.search(question, k=cfg["TOP_K"], doc_ids=doc_ids)
+    supported, coverage, reason = assess_support(index, q_terms, hits, cfg)
+    if not supported:
+        return _unsupported(question, hits, reason, cfg, "gate", started, coverage)
+
+    # Definition-trap guard: refuse when the question asks for an abbreviation's meaning
+    # but no retrieved passage actually defines/expands it.
+    if _is_definition_trap(question, hits):
+        return _unsupported(
+            question, hits,
+            "Your notes mention this term but don't define or expand it; the answer would be unreliable.",
+            cfg, "gate", started, coverage,
+        )
+
+    llm_error = None
+    if llm is not None and llm.configured:
+        try:
+            raw = llm.chat(_build_prompt(question, hits), max_tokens=700)
+            obj = parse_json_object(raw)
+            if obj is None:
+                raise LLMError("model did not return valid JSON")
+            if not obj.get("answerable", False) or not str(obj.get("answer", "")).strip():
+                return _unsupported(question, hits, "The tutor model judged the retrieved passages insufficient to answer.",
+                                    cfg, "llm", started, coverage)
+            text, valid, removed = normalize_markers(str(obj["answer"]), len(hits))
+            if not valid:
+                return _unsupported(question, hits, "The model's answer did not cite any retrieved source, so it was withheld.",
+                                    cfg, "llm", started, coverage, {"removed_invalid_citations": removed})
+            cited = [hits[n - 1][0] for n in valid]
+            overlap = grounding_overlap(text, cited)
+            return {
+                "status": "answered",
+                "mode": "llm",
+                "question": question,
+                "answer": text,
+                "citations": [_citation(n, hits[n - 1][0], hits[n - 1][1]) for n in valid],
+                "support": {"coverage": round(coverage, 3), "top_score": round(hits[0][1], 3),
+                            "grounding_overlap": round(overlap, 3)},
+                "removed_invalid_citations": removed,
+                "warnings": (["Parts of this answer use wording not found in the cited passages; check the excerpts."]
+                             if overlap < 0.4 else []),
+                "elapsed_ms": int((time.time() - started) * 1000),
+            }
+        except LLMError as e:
+            llm_error = str(e)
+
+    text, used = extractive_answer(index, q_terms, hits)
+    if not text:
+        return _unsupported(question, hits, "No sentence in the retrieved passages addresses the question.", cfg, "extractive", started, coverage)
+    res = {
+        "status": "answered",
+        "mode": "extractive" if llm_error is None else "extractive_fallback",
+        "question": question,
+        "answer": text,
+        "citations": [_citation(n, hits[n - 1][0], hits[n - 1][1]) for n in used],
+        "support": {"coverage": round(coverage, 3), "top_score": round(hits[0][1], 3)},
+        "removed_invalid_citations": [],
+        "warnings": [],
+        "elapsed_ms": int((time.time() - started) * 1000),
+    }
+    if llm_error:
+        res["llm_error"] = llm_error
+    return res

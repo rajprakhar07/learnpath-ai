@@ -1,0 +1,26 @@
+{"id": "dev-01", "question": "What is gradient descent?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 3}]}
+{"id": "dev-02", "question": "What happens if the learning rate is too large?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 3}]}
+{"id": "dev-03", "question": "What is the difference between precision and recall?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 5}]}
+{"id": "dev-04", "question": "How does L1 regularization differ from L2?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 4}]}
+{"id": "dev-05", "question": "What is backpropagation?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 6}]}
+{"id": "dev-06", "question": "What is overfitting?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 4}]}
+{"id": "dev-07", "question": "What is k-fold cross-validation?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 5}]}
+{"id": "dev-08", "question": "What is the difference between classification and regression?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 2}]}
+{"id": "dev-09", "question": "What is the validation set used for?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 2}]}
+{"id": "dev-10", "question": "What are the three families of machine learning?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 1}]}
+{"id": "dev-11", "question": "What does dropout do?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 6}]}
+{"id": "dev-12", "question": "Why does regularization reduce overfitting?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 4}]}
+{"id": "dev-13", "question": "What is a foreign key?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 2}]}
+{"id": "dev-14", "question": "What does ACID stand for?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 6}]}
+{"id": "dev-15", "question": "What is a quantum in round robin scheduling?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 130}]}
+{"id": "dev-16", "question": "What are the conditions for deadlock?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 350}]}
+{"id": "dev-17", "question": "What does an index do for lookups?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 4}]}
+{"id": "dev-18", "question": "What is the capital of France?", "answerable": false, "expected": []}
+{"id": "dev-19", "question": "Who won the 2018 World Cup?", "answerable": false, "expected": []}
+{"id": "dev-20", "question": "What is the best way to learn Python?", "answerable": false, "expected": []}
+{"id": "dev-21", "question": "How do I bake sourdough bread?", "answerable": false, "expected": []}
+{"id": "dev-22", "question": "Explain the causes of the French Revolution", "answerable": false, "expected": []}
+{"id": "dev-23", "question": "What is the boiling point of water?", "answerable": false, "expected": []}
+{"id": "dev-24", "question": "How does photosynthesis work?", "answerable": false, "expected": []}
+{"id": "dev-25", "question": "Who is the CEO of Tesla?", "answerable": false, "expected": []}
+{"id": "dev-26", "question": "What is the derivative of sin(x)?", "answerable": false, "expected": []}

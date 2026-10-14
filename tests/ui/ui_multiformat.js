@@ -1,0 +1,30 @@
+const { JSDOM } = require("jsdom");
+const BASE = "http://localhost:5000"; const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let failures = 0; const check = (n, c, x="") => { console.log((c?"PASS":"FAIL")+"  "+n+(x?"  -> "+x:"")); if(!c) failures++; };
+(async () => {
+  const dom = new JSDOM(await (await fetch(BASE+"/")).text(), { url: BASE+"/", runScripts: "outside-only", pretendToBeVisual: true });
+  const w = dom.window; w.fetch=(u,o)=>fetch(new URL(u,BASE),o); w.confirm=()=>true; w.Element.prototype.scrollIntoView=function(){};
+  w.eval(await (await fetch(BASE+"/static/app.js")).text()); await sleep(400);
+  const $=(s)=>w.document.querySelector(s), $$=(s)=>[...w.document.querySelectorAll(s)];
+  const ask = async (q) => { $("#q").value=q; $("#ask-form").requestSubmit(); await sleep(1000); };
+  $("#load-all").click(); await sleep(1500);
+  check("4 documents listed with kind-specific units", $$("#docs li").length===4 && /6 slides/.test($("#docs").textContent) && /11 cues/.test($("#docs").textContent) && /1 figure/.test($("#docs").textContent), $$("#docs .meta").map(x=>x.textContent).join(" || "));
+  await ask("What is a foreign key?");
+  check("slide chip shown", $$(".chip").some(c=>c.textContent==="slide 2"), $$(".chip").map(c=>c.textContent).join(","));
+  check("viewer opens slide viewer", /\/view\/\d+\?slide=2/.test($("#viewer").getAttribute("src")||""), $("#viewer").getAttribute("src"));
+  await ask("What is a quantum in round robin scheduling?");
+  check("time-range chip shown", $$(".chip").some(c=>c.textContent==="02:10–02:22"), $$(".chip").map(c=>c.textContent).join(","));
+  check("viewer opens transcript at time", /\/view\/\d+\?t=130&te=142/.test($("#viewer").getAttribute("src")||""), $("#viewer").getAttribute("src"));
+  await ask("What does an index do for lookups?");
+  const img = $$(".card .fig img")[0];
+  check("figure shown with real alt text + caption", !!img && /B-tree/.test(img.alt) && /Alt text: Diagram of a B-tree/.test($(".card .fig figcaption").textContent), img && img.src);
+  await ask("How does training error behave as model complexity grows?");
+  check("PDF figure caption shown", $$(".card .fig figcaption").some(f=>/Figure 1: Training error/.test(f.textContent)));
+  check("PDF citation still opens #page", /#page=1$/.test($("#viewer").getAttribute("src")||""), $("#viewer").getAttribute("src"));
+  await ask("What is the capital of France?");
+  check("unsupported still flagged", /Not found in your material/.test($$(".turn").pop().textContent));
+  // fetch the actual viewer pages the iframe would load
+  const slideHtml = await (await fetch(BASE+"/view/2?slide=4")).text();
+  check("slide viewer page renders highlighted slide", /class="slide hl"/.test(slideHtml));
+  console.log(failures?failures+" FAILURE(S)":"ALL STAGE-4 UI CHECKS PASSED"); process.exit(failures?1:0);
+})().catch(e=>{console.error("HARNESS ERROR",e);process.exit(2)});

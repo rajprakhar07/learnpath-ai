@@ -1,0 +1,22 @@
+
+# Python environment and caches
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local database and uploaded documents
+data/*.sqlite3
+data/uploads/
+data/figures/
+
+# Generated evaluation results
+eval/results/
+
+# Local logs
+*.log

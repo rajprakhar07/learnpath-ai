@@ -1,0 +1,48 @@
+{"id": "heldout-01", "question": "How is a primary key different from a foreign key?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 2}], "note": ""}
+{"id": "heldout-02", "question": "Which SQL clause removes rows that don't meet a condition?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 3}], "note": ""}
+{"id": "heldout-03", "question": "What does the JOIN operation do?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 3}], "note": ""}
+{"id": "heldout-04", "question": "Why do indexes slow down writes?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 4}], "note": ""}
+{"id": "heldout-05", "question": "What is third normal form?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 5}], "note": ""}
+{"id": "heldout-06", "question": "What does atomicity mean?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 6}], "note": ""}
+{"id": "heldout-07", "question": "What does the D in ACID stand for?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 6}], "note": "answer is in the speaker notes"}
+{"id": "heldout-08", "question": "What is a transaction in a database?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 6}], "note": ""}
+{"id": "heldout-09", "question": "How do B-trees speed up lookups?", "answerable": true, "expected": [{"doc": "sample_deck.pptx", "slide": 4}], "note": "answer is in the speaker notes"}
+{"id": "heldout-10", "question": "What is a mutex?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 482}], "note": ""}
+{"id": "heldout-11", "question": "What is a semaphore used for?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 435}], "note": ""}
+{"id": "heldout-12", "question": "What are the necessary conditions for deadlock?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 350}], "note": ""}
+{"id": "heldout-13", "question": "What happens if the time quantum is too small?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 185}], "note": ""}
+{"id": "heldout-14", "question": "What is the difference between a process and a thread?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 20}, {"doc": "sample_lecture.vtt", "t": 45}], "note": ""}
+{"id": "heldout-15", "question": "What does a context switch do?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 220}], "note": ""}
+{"id": "heldout-16", "question": "How does round robin scheduling work?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 130}], "note": ""}
+{"id": "heldout-17", "question": "What does the scheduler decide?", "answerable": true, "expected": [{"doc": "sample_lecture.vtt", "t": 90}], "note": "paraphrase: 'scheduler' vs 'Scheduling'"}
+{"id": "heldout-18", "question": "What is mean squared error?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 3}], "note": ""}
+{"id": "heldout-19", "question": "What is the purpose of the learning rate?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 3}], "note": ""}
+{"id": "heldout-20", "question": "What is stochastic gradient descent?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 3}], "note": ""}
+{"id": "heldout-21", "question": "What is the F1 score?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 5}], "note": ""}
+{"id": "heldout-22", "question": "How does k-fold cross-validation work?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 5}], "note": ""}
+{"id": "heldout-23", "question": "What is the bias-variance tradeoff?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 4}], "note": ""}
+{"id": "heldout-24", "question": "How does dropout work?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 6}], "note": ""}
+{"id": "heldout-25", "question": "Why can accuracy be misleading?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 5}], "note": ""}
+{"id": "heldout-26", "question": "What is the validation set for?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 2}], "note": ""}
+{"id": "heldout-27", "question": "What are the three types of machine learning?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 1}], "note": "paraphrase: 'types' vs 'families'"}
+{"id": "heldout-28", "question": "How can I stop a model from memorizing the training data?", "answerable": true, "expected": [{"doc": "sample_course.pdf", "page": 4}], "note": "vocabulary mismatch: 'memorizing' never appears"}
+{"id": "heldout-29", "question": "How does test error change as model complexity increases?", "answerable": true, "expected": [{"doc": "sample_figure.pdf", "page": 1}, {"doc": "sample_course.pdf", "page": 4}], "note": "supported by the figure PDF and partly by course p4"}
+{"id": "heldout-30", "question": "What is the best model complexity according to the notes?", "answerable": true, "expected": [{"doc": "sample_figure.pdf", "page": 2}], "note": ""}
+{"id": "heldout-31", "question": "What is a convolutional neural network?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-32", "question": "What is the capital of Australia?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-33", "question": "How does the Adam optimizer work?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-34", "question": "What is a NoSQL database?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-35", "question": "How do I create an index in PostgreSQL?", "answerable": false, "expected": [], "note": "'index' appears in the deck; the rest does not"}
+{"id": "heldout-36", "question": "What is the CAP theorem?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-37", "question": "Who invented the relational model?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-38", "question": "What is virtual memory?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-39", "question": "How does paging work in operating systems?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-40", "question": "What is the time complexity of quicksort?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-41", "question": "What does ReLU stand for?", "answerable": false, "expected": [], "note": "TRAP: ReLU is mentioned as an example but never defined or expanded"}
+{"id": "heldout-42", "question": "What is a random forest?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-43", "question": "Explain the transformer architecture.", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-44", "question": "What is the boiling point of ethanol?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-45", "question": "What is the F2 score?", "answerable": false, "expected": [], "note": "near-miss: F1 is covered, F2 is not"}
+{"id": "heldout-46", "question": "How many layers does ResNet-50 have?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-47", "question": "Who is the lecturer of this course?", "answerable": false, "expected": [], "note": ""}
+{"id": "heldout-48", "question": "What are the prerequisites for CS240?", "answerable": false, "expected": [], "note": "'CS240' appears on slide 1; prerequisites never mentioned"}
